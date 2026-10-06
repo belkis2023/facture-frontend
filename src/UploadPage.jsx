@@ -10,6 +10,7 @@ function UploadPage() {
 
     const [factures, setFactures] = useState([]);
     const [editingFacture, setEditingFacture] = useState(null);
+    const [formError, setFormError] = useState('');
 
     useEffect(() => {
         async function loadFactures() {
@@ -41,11 +42,13 @@ function UploadPage() {
 
     const updateFacture = async (id, data) => {
         try {
+            setFormError('');
             const res = await fetch(`http://localhost:8080/api/factures/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
+            if (!res.ok) throw new Error('La facture n’a pas pu être mise à jour.');
             const updatedFacture = await res.json();
 
             setFactures(prev =>
@@ -54,6 +57,7 @@ function UploadPage() {
             setEditingFacture(null);
         } catch (err) {
             console.error('Erreur lors de la mise à jour:', err);
+            setFormError(err.message || 'La facture n’a pas pu être mise à jour.');
         }
     };
 
@@ -76,13 +80,13 @@ function UploadPage() {
         <div>
             <h1 className="text-3xl font-bold text-blue-600">Gestion des Factures</h1>
 
-            <FileUploader onUploaded={() => {
-                fetch('http://localhost:8080/api/factures')
-                    .then(res => res.json())
-                    .then(setFactures)
-                    .catch(console.error);
+            <FileUploader onUploaded={draft => {
+                setFactures(prev => [...prev, draft]);
+                setEditingFacture(draft);
+                setFormError('');
             }} />
 
+            {formError && <p role="alert">{formError}</p>}
             <FactureForm
                 onCreate={createFacture}
                 onUpdate={updateFacture}
